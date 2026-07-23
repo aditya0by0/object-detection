@@ -95,8 +95,9 @@ def convert(split):
     }
 
     output = f"{split}.json"
-
-    with open(output, "w") as f:
+    path = os.path.join(DATASET_DIR, "coco", output)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
         json.dump(coco, f, indent=4)
 
     print(f"{split}.json created")
@@ -104,4 +105,6 @@ def convert(split):
 
 if __name__ == "__main__":
     convert("train")
+    convert("trainval")
     convert("val")
+    convert("test")
