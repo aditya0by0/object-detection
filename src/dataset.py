@@ -1,0 +1,62 @@
+import os
+
+from PIL import Image
+from pycocotools.coco import COCO
+from torch.utils.data import Dataset
+
+
+class BCCDDataset(Dataset):
+    """Reads a COCO-style json + image folder and returns HF-DETR-ready samples."""
+
+    def __init__(self, images_dir: str, ann_file: str, image_processor):
+        self.images_dir = images_dir
+        self.coco = COCO(ann_file)
+        self.image_ids = sorted(self.coco.imgs.keys())
+        self.image_processor = image_processor
+
+    def __len__(self):
+        return len(self.image_ids)
+
+    def __getitem__(self, idx):
+        image_id = self.image_ids[idx]
+        img_info = self.coco.imgs[image_id]
+        image_path = os.path.join(self.images_dir, img_info["file_name"])
+        image = Image.open(image_path).convert("RGB")
+
+        ann_ids = self.coco.getAnnIds(imgIds=image_id)
+        anns = self.coco.loadAnns(ann_ids)
+
+        target = {"image_id": image_id, "annotations": anns}
+
+        encoding = self.image_processor(
+            images=image, annotations=target, return_tensors="pt"
+        )
+        pixel_values = encoding["pixel_values"][0]
+        labels = encoding["labels"][0]
+        return {"pixel_values": pixel_values, "labels": labels}
+
+
+def collate_fn(batch, image_processor):
+    pixel_values = [item["pixel_values"] for item in batch]
+    encoding = image_processor.pad(pixel_values, return_tensors="pt")
+    labels = [item["labels"] for item in batch]
+    return {
+        "pixel_values": encoding["pixel_values"],
+        "pixel_mask": encoding["pixel_mask"],
+        "labels": labels,
+    }
+
+
+if __name__ == "__main__":
+    from transformers import DetrImageProcessor
+
+    images_dir = "data/BCCD/JPEGImages"
+    ann_file = "data/BCCD/coco/train.json"
+    image_processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
+
+    dataset = BCCDDataset(images_dir, ann_file, image_processor)
+    print(f"Dataset length: {len(dataset)}")
+    sample = dataset[0]
+    print(f"Sample keys: {sample.keys()}")
+    print(f"Pixel values shape: {sample['pixel_values'].shape}")
+    print(f"Labels: {sample['labels']}")
