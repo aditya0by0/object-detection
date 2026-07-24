@@ -4,13 +4,7 @@ import xml.etree.ElementTree as ET
 
 from tqdm import tqdm
 
-# Path to dataset
-DATASET_DIR = "data/BCCD"
-
-IMAGE_DIR = os.path.join(DATASET_DIR, "JPEGImages")
-ANNOTATION_DIR = os.path.join(DATASET_DIR, "Annotations")
-IMAGESETS_DIR = os.path.join(DATASET_DIR, "ImageSets/Main")
-
+from src import ANNOTATION_DIR, DATASET_DIR, IMAGESETS_DIR
 
 # BCCD classes
 CLASSES = ["RBC", "WBC", "Platelets"]
