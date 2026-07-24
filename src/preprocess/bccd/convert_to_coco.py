@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 
 from tqdm import tqdm
 
-from src import ANNOTATION_DIR, DATASET_DIR, IMAGESETS_DIR
+from constants import ANNOTATION_DIR, DATASET_DIR, IMAGESETS_DIR
 
 # BCCD classes
 CLASSES = ["RBC", "WBC", "Platelets"]

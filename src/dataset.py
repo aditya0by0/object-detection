@@ -36,21 +36,10 @@ class BCCDDataset(Dataset):
         return {"pixel_values": pixel_values, "labels": labels}
 
 
-def collate_fn(batch, image_processor):
-    pixel_values = [item["pixel_values"] for item in batch]
-    encoding = image_processor.pad(pixel_values, return_tensors="pt")
-    labels = [item["labels"] for item in batch]
-    return {
-        "pixel_values": encoding["pixel_values"],
-        "pixel_mask": encoding["pixel_mask"],
-        "labels": labels,
-    }
-
-
 if __name__ == "__main__":
     from transformers import DetrImageProcessor
 
-    from src import COCO_DIR, IMAGE_DIR
+    from constants import COCO_DIR, IMAGE_DIR
 
     image_processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
 
