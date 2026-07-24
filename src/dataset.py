@@ -50,11 +50,13 @@ def collate_fn(batch, image_processor):
 if __name__ == "__main__":
     from transformers import DetrImageProcessor
 
-    images_dir = "data/BCCD/JPEGImages"
-    ann_file = "data/BCCD/coco/train.json"
+    from src import COCO_DIR, IMAGE_DIR
+
     image_processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
 
-    dataset = BCCDDataset(images_dir, ann_file, image_processor)
+    dataset = BCCDDataset(
+        IMAGE_DIR, os.path.join(COCO_DIR, "train.json"), image_processor
+    )
     print(f"Dataset length: {len(dataset)}")
     sample = dataset[0]
     print(f"Sample keys: {sample.keys()}")
