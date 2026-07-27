@@ -1,3 +1,4 @@
+# srun --partition=gpu --constraint="A100|H100.80gb" --ntasks=1 --cpus-per-task=8 --threads-per-core=1 --mem=64G --time=02:00:00 --gres=gpu:1 --pty bash
 import os
 from functools import partial
 
@@ -6,6 +7,7 @@ import torch.nn.functional as F
 from transformers import (
     DetrForObjectDetection,
     DetrImageProcessor,
+    EarlyStoppingCallback,
     Trainer,
     TrainingArguments,
 )
@@ -15,6 +17,12 @@ from dataset import BCCDDataset
 CLASSES = ["RBC", "WBC", "Platelets"]
 ID2LABEL = {i + 1: name for i, name in enumerate(CLASSES)}
 LABEL2ID = {name: i + 1 for i, name in enumerate(CLASSES)}
+
+
+# References:
+# https://huggingface.co/docs/transformers/tasks/object_detection
+# https://huggingface.co/docs/transformers/v5.14.0/en/model_doc/detr?usage=Pipeline#detr
+# https://colab.research.google.com/github/facebookresearch/detr/blob/colab/notebooks/detr_demo.ipynb
 
 
 def main(image_dir, train_coco_fp, val_coco_fp, epochs=50, batch_size=4, lr=1e-5):
@@ -43,11 +51,11 @@ def main(image_dir, train_coco_fp, val_coco_fp, epochs=50, batch_size=4, lr=1e-5
         save_strategy="epoch",
         save_total_limit=2,
         load_best_model_at_end=True,
-        logging_steps=20,
+        logging_strategy="epoch",
         dataloader_num_workers=2,
         remove_unused_columns=False,
         fp16=True,
-        report_to=[],
+        report_to=["tensorboard"],
     )
 
     trainer = Trainer(
@@ -56,6 +64,7 @@ def main(image_dir, train_coco_fp, val_coco_fp, epochs=50, batch_size=4, lr=1e-5
         train_dataset=train_ds,
         eval_dataset=val_ds,
         data_collator=partial(collate_fn),
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
     )
 
     trainer.train()
