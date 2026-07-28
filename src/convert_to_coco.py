@@ -5,11 +5,7 @@ import xml.etree.ElementTree as ET
 from tqdm import tqdm
 
 from constants import ANNOTATION_DIR, DATASET_DIR, IMAGESETS_DIR
-
-# BCCD classes
-CLASSES = ["RBC", "WBC", "Platelets"]
-
-CATEGORY_ID = {"RBC": 1, "WBC": 2, "Platelets": 3}
+from train import CLASSES, LABEL2ID
 
 
 def convert(split):
@@ -54,7 +50,7 @@ def convert(split):
                 {
                     "id": annotation_id,
                     "image_id": image_id,
-                    "category_id": CATEGORY_ID[category],
+                    "category_id": LABEL2ID[category],
                     "bbox": [xmin, ymin, w, h],
                     "area": w * h,
                     "iscrowd": 0,

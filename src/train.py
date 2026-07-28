@@ -14,8 +14,17 @@ from constants import COCO_DIR, IMAGE_DIR
 from dataset import BCCDDataset
 
 CLASSES = ["RBC", "WBC", "Platelets"]
-ID2LABEL = {i + 1: name for i, name in enumerate(CLASSES)}
-LABEL2ID = {name: i + 1 for i, name in enumerate(CLASSES)}
+ID2LABEL = {
+    0: "RBC",
+    1: "WBC",
+    2: "Platelets",
+}
+
+LABEL2ID = {
+    "RBC": 0,
+    "WBC": 1,
+    "Platelets": 2,
+}
 
 # References:
 # https://huggingface.co/docs/transformers/tasks/object_detection
