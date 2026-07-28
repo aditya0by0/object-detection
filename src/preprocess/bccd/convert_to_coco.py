@@ -13,11 +13,8 @@ CATEGORY_ID = {"RBC": 1, "WBC": 2, "Platelets": 3}
 
 
 def convert(split):
-    images = []
-    annotations = []
-
+    images, annotations = [], []
     annotation_id = 1
-
     txt_file = os.path.join(IMAGESETS_DIR, split + ".txt")
 
     with open(txt_file) as f:
@@ -25,17 +22,13 @@ def convert(split):
 
     for name in tqdm(image_names):
         xml_path = os.path.join(ANNOTATION_DIR, name + ".xml")
-
         tree = ET.parse(xml_path)
         root = tree.getroot()
-
         filename = name + ".jpg"
 
         # image size
         size = root.find("size")
-
         width = int(size.find("width").text)
-
         height = int(size.find("height").text)
 
         image_id = int(name.split("_")[-1])  # Extract image ID from filename
@@ -43,27 +36,20 @@ def convert(split):
             {"id": image_id, "file_name": filename, "width": width, "height": height}
         )
 
-        # objects
-
         for obj in root.findall("object"):
             category = obj.find("name").text
-
             if category not in CLASSES:
                 raise ValueError(f"Unknown category: {category} for image {filename}")
 
             bbox = obj.find("bndbox")
-
-            xmin = int(bbox.find("xmin").text)
-
-            ymin = int(bbox.find("ymin").text)
-
+            # https://github.com/soumenpramanik/Convert-Pascal-VOC-to-COCO/blob/master/convertVOC2COCO.py#L78-L79
+            # Subtract 1 to shift from VOC's 1-indexed to COCO's 0-indexed format
+            xmin = int(bbox.find("xmin").text) - 1
+            ymin = int(bbox.find("ymin").text) - 1
             xmax = int(bbox.find("xmax").text)
-
             ymax = int(bbox.find("ymax").text)
-
             w = xmax - xmin
             h = ymax - ymin
-
             annotations.append(
                 {
                     "id": annotation_id,
@@ -74,7 +60,6 @@ def convert(split):
                     "iscrowd": 0,
                 }
             )
-
             annotation_id += 1
 
     coco = {
@@ -92,7 +77,6 @@ def convert(split):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         json.dump(coco, f, indent=4)
-
     print(f"{split}.json created")
 
 
