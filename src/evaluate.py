@@ -6,6 +6,7 @@ from pathlib import Path
 import fiftyone as fo
 import torch
 from PIL import Image
+from pycocotools.coco import COCO
 from torchmetrics.detection.mean_ap import MeanAveragePrecision
 from transformers import DetrForObjectDetection, DetrImageProcessor
 
@@ -20,7 +21,6 @@ def run_inference(model, processor, coco, images_dir, device):
     Runs DETR inference and returns TorchMetrics-compatible predictions/targets
     plus FiftyOne samples.
     """
-
     predictions = []
     targets = []
     fiftyone_samples = []
@@ -31,6 +31,7 @@ def run_inference(model, processor, coco, images_dir, device):
         image_path = images_dir / info["file_name"]
         image = Image.open(image_path).convert("RGB")
         inputs = processor(images=image, return_tensors="pt").to(device)
+
         with torch.no_grad():
             outputs = model(**inputs)
 
@@ -39,7 +40,7 @@ def run_inference(model, processor, coco, images_dir, device):
             outputs, target_sizes=target_sizes, threshold=SCORE_THRESHOLD
         )[0]
 
-        # TorchMetrics format
+        # TorchMetrics predictions (Shift +1 to match 1-indexed ground-truth category_ids)
         boxes, scores, labels = [], [], []
 
         for score, label, box in zip(
@@ -47,7 +48,9 @@ def run_inference(model, processor, coco, images_dir, device):
         ):
             boxes.append(box.cpu())
             scores.append(score.cpu())
-            labels.append(label.cpu() + 1)
+            labels.append(
+                label.cpu() + 1
+            )  # DETR outputs 0-indexed -> Convert to 1-indexed
 
         predictions.append(
             {
@@ -59,7 +62,7 @@ def run_inference(model, processor, coco, images_dir, device):
             }
         )
 
-        # Ground truth
+        # Ground truth annotations
         gt_boxes = []
         gt_labels = []
         anns = coco.loadAnns(coco.getAnnIds(imgIds=image_id))
@@ -119,35 +122,50 @@ def evaluate(predictions, targets, output_dir: Path):
 
 
 def launch_fiftyone(samples):
-    dataset = fo.Dataset("detr-evaluation")
+    """Launches the FiftyOne visualization app."""
+    # overwrite=True prevents collisions if re-running the script
+    dataset = fo.Dataset("detr-evaluation", overwrite=True)
     dataset.add_samples(samples)
     session = fo.launch_app(dataset)
     session.wait()
 
 
 def main():
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model-dir", type=Path, required=True)
+    parser = argparse.ArgumentParser(
+        description="Evaluate DETR model and visualize results."
+    )
     parser.add_argument(
-        "--val-ann", type=Path, default=Path(os.path.join(COCO_DIR, "train.json"))
+        "--model-dir", type=Path, required=True, help="Path to trained model directory"
+    )
+    parser.add_argument(
+        "--val-ann",
+        type=Path,
+        default=Path(os.path.join(COCO_DIR, "val.json")),
+        help="Path to validation COCO annotation file",
     )
     args = parser.parse_args()
 
     output_dir = args.model_dir / "eval"
     output_dir.mkdir(exist_ok=True, parents=True)
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    print("Loading model...")
+
+    print(f"Using device: {device}")
+    print("Loading model and processor...")
     processor = DetrImageProcessor.from_pretrained(args.model_dir)
     model = DetrForObjectDetection.from_pretrained(args.model_dir).to(device).eval()
-    from pycocotools.coco import COCO
 
+    print(f"Loading annotations from: {args.val_ann}")
     coco = COCO(str(args.val_ann))
+
+    print("Running inference...")
     predictions, targets, samples = run_inference(
         model, processor, coco, Path(IMAGE_DIR), device
     )
+
+    print("Computing metrics...")
     evaluate(predictions, targets, output_dir)
-    print("\nLaunching FiftyOne...")
+
+    print("\nLaunching FiftyOne App...")
     launch_fiftyone(samples)
 
 
