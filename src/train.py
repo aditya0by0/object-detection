@@ -25,7 +25,7 @@ LABEL2ID = {name: i + 1 for i, name in enumerate(CLASSES)}
 # https://colab.research.google.com/github/facebookresearch/detr/blob/colab/notebooks/detr_demo.ipynb
 
 
-def main(image_dir, train_coco_fp, val_coco_fp, epochs=1, batch_size=4, lr=1e-5):
+def main(image_dir, train_coco_fp, val_coco_fp, epochs=50, batch_size=4, lr=1e-5):
     output_dir = os.path.join(".output", f"detr_{epochs}ep_{batch_size}bs_{lr}lr")
     image_processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
 
@@ -52,7 +52,7 @@ def main(image_dir, train_coco_fp, val_coco_fp, epochs=1, batch_size=4, lr=1e-5)
         save_total_limit=1,
         load_best_model_at_end=True,
         logging_strategy="epoch",
-        dataloader_num_workers=5,
+        dataloader_num_workers=4,
         remove_unused_columns=False,
         fp16=True,
         report_to=["tensorboard"],
@@ -63,7 +63,7 @@ def main(image_dir, train_coco_fp, val_coco_fp, epochs=1, batch_size=4, lr=1e-5)
         args=training_args,
         train_dataset=train_ds,
         eval_dataset=val_ds,
-        data_collator=partial(collate_fn),
+        data_collator=partial(collate_fn, image_processor=image_processor),
         # callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
     )
 
@@ -73,26 +73,28 @@ def main(image_dir, train_coco_fp, val_coco_fp, epochs=1, batch_size=4, lr=1e-5)
     print(f"Model + processor saved to {output_dir}")
 
 
-def collate_fn(batch):
+def collate_fn(batch, image_processor):
     pixel_values = [item["pixel_values"] for item in batch]
     labels = [item["labels"] for item in batch]
 
-    max_h = max(pv.shape[-2] for pv in pixel_values)
-    max_w = max(pv.shape[-1] for pv in pixel_values)
+    # max_h = max(pv.shape[-2] for pv in pixel_values)
+    # max_w = max(pv.shape[-1] for pv in pixel_values)
 
-    padded_pixel_values, pixel_masks = [], []
-    for pv in pixel_values:
-        _, h, w = pv.shape
-        # pad only bottom/right, matching DETR's own padding convention
-        padded = F.pad(pv, (0, max_w - w, 0, max_h - h), value=0.0)
-        mask = torch.zeros((max_h, max_w), dtype=torch.long)
-        mask[:h, :w] = 1
-        padded_pixel_values.append(padded)
-        pixel_masks.append(mask)
+    # padded_pixel_values, pixel_masks = [], []
+    # for pv in pixel_values:
+    #     _, h, w = pv.shape
+    #     # pad only bottom/right, matching DETR's own padding convention
+    #     padded = F.pad(pv, (0, max_w - w, 0, max_h - h), value=0.0)
+    #     mask = torch.zeros((max_h, max_w), dtype=torch.long)
+    #     mask[:h, :w] = 1
+    #     padded_pixel_values.append(padded)
+    #     pixel_masks.append(mask)
+    
+    encoding = image_processor.pad(pixel_values, return_tensors="pt")
 
     return {
-        "pixel_values": torch.stack(padded_pixel_values),
-        "pixel_mask": torch.stack(pixel_masks),
+        "pixel_values": encoding["pixel_values"],
+        "pixel_mask": encoding["pixel_mask"],
         "labels": labels,
     }
 
