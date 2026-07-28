@@ -48,9 +48,7 @@ def run_inference(model, processor, coco, images_dir, device):
         ):
             boxes.append(box.cpu())
             scores.append(score.cpu())
-            labels.append(
-                label.cpu() + 1
-            )  # DETR outputs 0-indexed -> Convert to 1-indexed
+            labels.append(label.cpu())
 
         predictions.append(
             {
@@ -87,7 +85,7 @@ def run_inference(model, processor, coco, images_dir, device):
             x1, y1, x2, y2 = box.tolist()
             detections.append(
                 fo.Detection(
-                    label=ID2LABEL[int(label) + 1],
+                    label=ID2LABEL[int(label)],
                     bounding_box=[
                         x1 / info["width"],
                         y1 / info["height"],
