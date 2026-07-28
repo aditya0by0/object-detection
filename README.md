@@ -114,8 +114,10 @@ This script will:
 - Run inference with a score threshold of 0.5
 - Compute **mean Average Precision (mAP)** metrics using `torchmetrics.detection.MeanAveragePrecision` (overall and per‑class)
 - Save numeric metrics to `{model_dir}/eval/metrics.json`
-- Launch a [**FiftyOne**](https://voxel51.com/fiftyone) visualization app to explore predictions interactively
-- Generate an **interactive confusion matrix** and **precision‑recall curves** (saved as HTML to `{model_dir}/eval/`)
+- Launch a **FiftyOne** visualization app to explore predictions interactively
+- Generate **confusion matrix** and **precision‑recall curves** in two formats:
+  - Interactive HTML (Plotly) — viewable in any web browser
+  - Static PNG (matplotlib) — suitable for quick reference
 
 **Arguments:**
 
@@ -123,5 +125,3 @@ This script will:
 |----------------|------------------------------|---------------------------------|
 | `--model-dir`  | —                            | Path to trained model directory |
 | `--val-ann`    | `data/BCCD/coco/val.json`    | Validation COCO annotation file |
-
-> **Tip:** The HTML plots require a web browser to view; they are interactive (Plotly). To save as static PNG instead, install `kaleido` (`uv add kaleido`) and change the file extension to `.png` in the source code.
