@@ -42,23 +42,7 @@ Class mapping (0‑indexed):
 │   ├── dataset.py             # PyTorch Dataset wrapping COCO
 │   ├── train.py               # Training script (HF Trainer)
 │   └── evaluate.py            # Evaluation + FiftyOne visualization
-└── results/
-    ├── 50ep/                  # Evaluation artifacts for 50-epoch model
-    │   ├── confusion_matrix.png
-    │   ├── confusion_matrix.html
-    │   ├── pr_curves.png
-    │   ├── pr_curves.html
-    │   └── metrics.json
-    ├── 100ep/                 # Evaluation artifacts for 100-epoch model
-    │   ├── confusion_matrix.png
-    │   ├── confusion_matrix.html
-    │   ├── pr_curves.png
-    │   ├── pr_curves.html
-    │   └── metrics.json
-    └── val_samples/           # Sample validation images
-        ├── BloodImage_00000.jpg
-        ├── BloodImage_00002.jpg
-        ......
+└── results/  # Evaluation artifacts for model
 ```
 
 ## Setup
