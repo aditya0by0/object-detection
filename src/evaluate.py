@@ -223,7 +223,7 @@ def main():
     )
     parser.add_argument("--model-dir", type=Path, required=True)
     args = parser.parse_args()
-    output_dir = os.path.dirname(args.model_dir) / "eval"
+    output_dir = Path(os.path.dirname(args.model_dir)) / "eval"
     output_dir.mkdir(parents=True, exist_ok=True)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
