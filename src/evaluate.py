@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 
 import fiftyone as fo
+import matplotlib.pyplot as plt
 import torch
 from PIL import Image
 from pycocotools.coco import COCO
@@ -194,9 +195,17 @@ def launch_fiftyone(samples, output_dir: Path):
     plot_cm = results.plot_confusion_matrix(classes=CLASSES, backend="plotly")
     plot_cm._figure.write_html(str(output_dir / "confusion_matrix.html"))
 
+    results.plot_confusion_matrix(classes=CLASSES, backend="matplotlib")
+    plt.savefig(str(output_dir / "confusion_matrix.png"), bbox_inches="tight")
+    plt.close()
+
     # Generate and save Precision-Recall Curves
     plot_pr = results.plot_pr_curves(classes=CLASSES, backend="plotly")
     plot_pr.write_html(str(output_dir / "pr_curves.html"))
+
+    results.plot_pr_curves(classes=CLASSES, backend="matplotlib")
+    plt.savefig(str(output_dir / "pr_curves.png"), bbox_inches="tight")
+    plt.close()
 
     print(f"Interactive plots saved to: {output_dir}")
     print("You can open these HTML files in any web browser.")
