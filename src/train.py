@@ -25,7 +25,7 @@ LABEL2ID = {name: i + 1 for i, name in enumerate(CLASSES)}
 # https://colab.research.google.com/github/facebookresearch/detr/blob/colab/notebooks/detr_demo.ipynb
 
 
-def main(image_dir, train_coco_fp, val_coco_fp, epochs=50, batch_size=4, lr=1e-5):
+def main(image_dir, train_coco_fp, val_coco_fp, epochs=1, batch_size=4, lr=1e-5):
     output_dir = os.path.join(".output", f"detr_{epochs}ep_{batch_size}bs_{lr}lr")
     image_processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
 
@@ -49,10 +49,10 @@ def main(image_dir, train_coco_fp, val_coco_fp, epochs=50, batch_size=4, lr=1e-5
         weight_decay=1e-4,
         eval_strategy="epoch",
         save_strategy="epoch",
-        save_total_limit=2,
+        save_total_limit=1,
         load_best_model_at_end=True,
         logging_strategy="epoch",
-        dataloader_num_workers=2,
+        dataloader_num_workers=5,
         remove_unused_columns=False,
         fp16=True,
         report_to=["tensorboard"],
@@ -64,7 +64,7 @@ def main(image_dir, train_coco_fp, val_coco_fp, epochs=50, batch_size=4, lr=1e-5
         train_dataset=train_ds,
         eval_dataset=val_ds,
         data_collator=partial(collate_fn),
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
+        # callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
     )
 
     trainer.train()
