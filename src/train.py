@@ -36,7 +36,7 @@ def train(
 
     output_dir = os.path.join(
         ".output",
-        f"{model_id}_{epochs}ep_{batch_size}bs_{lr}lr",
+        f"{model_id}_{epochs}ep",
     )
 
     print(f"Loading {model_name}")
@@ -104,11 +104,18 @@ def main():
     parser = argparse.ArgumentParser(
         description="Evaluate DETR model and visualize results."
     )
+    # PekingU/rtdetr_r50vd, microsoft/conditional-detr-resnet-50, PekingU/rtdetr_r18vd
     parser.add_argument(
         "--model-name",
         type=str,
         required=True,
         help="Object detection model name (e.g., facebook/detr-resnet-50)",
+    )
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=50,
+        help="Number of training epochs (default: 50)",
     )
 
     args = parser.parse_args()
@@ -118,6 +125,7 @@ def main():
         image_dir=IMAGE_DIR,
         train_coco_fp=os.path.join(COCO_DIR, "train.json"),
         val_coco_fp=os.path.join(COCO_DIR, "val.json"),
+        epochs=args.epochs,
     )
 
 
