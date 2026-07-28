@@ -11,7 +11,7 @@ from torchmetrics.detection.mean_ap import MeanAveragePrecision
 from transformers import DetrForObjectDetection, DetrImageProcessor
 
 from constants import COCO_DIR, IMAGE_DIR
-from train import ID2LABEL
+from train import CLASSES, ID2LABEL
 
 SCORE_THRESHOLD = 0.5
 
@@ -63,12 +63,25 @@ def run_inference(model, processor, coco, images_dir, device):
         # Ground truth annotations
         gt_boxes = []
         gt_labels = []
+        fo_gt_detections = []
         anns = coco.loadAnns(coco.getAnnIds(imgIds=image_id))
 
         for ann in anns:
             x, y, w, h = ann["bbox"]
             gt_boxes.append([x, y, x + w, y + h])
             gt_labels.append(ann["category_id"])
+
+            fo_gt_detections.append(
+                fo.Detection(
+                    label=ID2LABEL[ann["category_id"]],
+                    bounding_box=[
+                        x / info["width"],
+                        y / info["height"],
+                        w / info["width"],
+                        h / info["height"],
+                    ],
+                )
+            )
 
         targets.append(
             {
@@ -98,6 +111,7 @@ def run_inference(model, processor, coco, images_dir, device):
 
         sample = fo.Sample(filepath=str(image_path))
         sample["predictions"] = fo.Detections(detections=detections)
+        sample["ground_truth"] = fo.Detections(detections=fo_gt_detections)
         fiftyone_samples.append(sample)
 
     return predictions, targets, fiftyone_samples
@@ -163,10 +177,30 @@ def evaluate(predictions, targets, output_dir: Path):
     (output_dir / "metrics.json").write_text(json.dumps(results, indent=2))
 
 
-def launch_fiftyone(samples):
+def launch_fiftyone(samples, output_dir: Path):
     """Launches the FiftyOne visualization app."""
     dataset = fo.Dataset("detr-evaluation", overwrite=True)
     dataset.add_samples(samples)
+
+    print("\nRunning FiftyOne COCO Evaluation for Plots...")
+    # This runs the IoU matching between predictions and ground truth
+    results = dataset.evaluate_detections(
+        "predictions", gt_field="ground_truth", eval_key="eval", compute_mAP=True
+    )
+
+    # Could be save to png file simply by changing extension to .png, but html is interactive and more useful
+    # For png, `uv add kaleido`
+    # Generate and save Confusion Matrix
+    plot_cm = results.plot_confusion_matrix(classes=CLASSES, backend="plotly")
+    plot_cm._figure.write_html(str(output_dir / "confusion_matrix.html"))
+
+    # Generate and save Precision-Recall Curves
+    plot_pr = results.plot_pr_curves(classes=CLASSES, backend="plotly")
+    plot_pr.write_html(str(output_dir / "pr_curves.html"))
+
+    print(f"Interactive plots saved to: {output_dir}")
+    print("You can open these HTML files in any web browser.")
+
     session = fo.launch_app(dataset)
     session.wait()
 
@@ -207,7 +241,7 @@ def main():
     evaluate(predictions, targets, output_dir)
 
     print("\nLaunching FiftyOne App...")
-    launch_fiftyone(samples)
+    launch_fiftyone(samples, output_dir)
 
 
 if __name__ == "__main__":
