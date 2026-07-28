@@ -106,12 +106,56 @@ def run_inference(model, processor, coco, images_dir, device):
 
 
 def evaluate(predictions, targets, output_dir: Path):
-    metric = MeanAveragePrecision(box_format="xyxy", iou_type="bbox")
+    """Calculates overall and per-class Mean Average Precision metrics using TorchMetrics."""
+    # class_metrics=True enables per-class mAP and mAR breakdown
+    metric = MeanAveragePrecision(
+        box_format="xyxy", iou_type="bbox", class_metrics=True
+    )
     metric.update(predictions, targets)
-    results = metric.compute()
-    results = {
-        k: float(v) for k, v in results.items() if torch.is_tensor(v) and v.numel() == 1
-    }
+    raw_results = metric.compute()
+
+    results = {}
+
+    # Standard scalar metrics
+    metric_keys = [
+        ("map", "Map"),
+        ("map_50", "Map 50"),
+        ("map_75", "Map 75"),
+        ("map_small", "Map Small"),
+        ("map_medium", "Map Medium"),
+        ("map_large", "Map Large"),
+        ("mar_1", "Mar 1"),
+        ("mar_10", "Mar 10"),
+        ("mar_100", "Mar 100"),
+        ("mar_small", "Mar Small"),
+        ("mar_medium", "Mar Medium"),
+        ("mar_large", "Mar Large"),
+    ]
+
+    for raw_key, print_label in metric_keys:
+        val = raw_results.get(raw_key)
+        if val is not None and torch.is_tensor(val) and val.numel() == 1:
+            results[print_label] = float(val)
+
+    # Per-class metrics
+    # torchmetrics returns a tensor of shape (num_classes,) or a list of class IDs in 'classes'
+    classes_tensor = raw_results.get("classes")
+    map_per_class = raw_results.get("map_per_class")
+    mar_100_per_class = raw_results.get("mar_100_per_class")
+
+    if classes_tensor is not None and map_per_class is not None:
+        class_ids = classes_tensor.tolist()
+        map_list = map_per_class.tolist()
+        mar_list = mar_100_per_class.tolist() if mar_100_per_class is not None else []
+
+        for cid, map_val in zip(class_ids, map_list):
+            class_name = ID2LABEL.get(int(cid), f"Class_{cid}")
+            formatted_name = class_name.capitalize()
+            results[f"Map {formatted_name}"] = float(map_val)
+
+            if mar_list:
+                mar_val = mar_list[class_ids.index(cid)]
+                results[f"Mar 100 {formatted_name}"] = float(mar_val)
 
     print("\nDetection metrics")
     print("-----------------")
@@ -123,7 +167,6 @@ def evaluate(predictions, targets, output_dir: Path):
 
 def launch_fiftyone(samples):
     """Launches the FiftyOne visualization app."""
-    # overwrite=True prevents collisions if re-running the script
     dataset = fo.Dataset("detr-evaluation", overwrite=True)
     dataset.add_samples(samples)
     session = fo.launch_app(dataset)

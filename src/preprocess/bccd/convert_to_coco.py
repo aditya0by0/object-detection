@@ -13,7 +13,6 @@ CATEGORY_ID = {"RBC": 1, "WBC": 2, "Platelets": 3}
 
 
 def convert(split):
-
     images = []
     annotations = []
 

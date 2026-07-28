@@ -2,12 +2,9 @@
 import os
 from functools import partial
 
-import torch
-import torch.nn.functional as F
 from transformers import (
     DetrForObjectDetection,
     DetrImageProcessor,
-    EarlyStoppingCallback,
     Trainer,
     TrainingArguments,
 )
@@ -77,19 +74,6 @@ def collate_fn(batch, image_processor):
     pixel_values = [item["pixel_values"] for item in batch]
     labels = [item["labels"] for item in batch]
 
-    # max_h = max(pv.shape[-2] for pv in pixel_values)
-    # max_w = max(pv.shape[-1] for pv in pixel_values)
-
-    # padded_pixel_values, pixel_masks = [], []
-    # for pv in pixel_values:
-    #     _, h, w = pv.shape
-    #     # pad only bottom/right, matching DETR's own padding convention
-    #     padded = F.pad(pv, (0, max_w - w, 0, max_h - h), value=0.0)
-    #     mask = torch.zeros((max_h, max_w), dtype=torch.long)
-    #     mask[:h, :w] = 1
-    #     padded_pixel_values.append(padded)
-    #     pixel_masks.append(mask)
-    
     encoding = image_processor.pad(pixel_values, return_tensors="pt")
 
     return {
