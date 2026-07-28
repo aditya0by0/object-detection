@@ -1,20 +1,21 @@
 # srun --partition=gpu --constraint="A100|H100.80gb" --ntasks=1 --cpus-per-task=8 --threads-per-core=1 --mem=64G --time=02:00:00 --gres=gpu:1 --pty bash
+import argparse
 import os
 from functools import partial
 
 from transformers import (
-    DetrForObjectDetection,
-    DetrImageProcessor,
+    AutoImageProcessor,
+    AutoModelForObjectDetection,
     Trainer,
     TrainingArguments,
 )
 
+from constants import COCO_DIR, IMAGE_DIR
 from dataset import BCCDDataset
 
 CLASSES = ["RBC", "WBC", "Platelets"]
 ID2LABEL = {i + 1: name for i, name in enumerate(CLASSES)}
 LABEL2ID = {name: i + 1 for i, name in enumerate(CLASSES)}
-
 
 # References:
 # https://huggingface.co/docs/transformers/tasks/object_detection
@@ -22,15 +23,31 @@ LABEL2ID = {name: i + 1 for i, name in enumerate(CLASSES)}
 # https://colab.research.google.com/github/facebookresearch/detr/blob/colab/notebooks/detr_demo.ipynb
 
 
-def main(image_dir, train_coco_fp, val_coco_fp, epochs=50, batch_size=4, lr=1e-5):
-    output_dir = os.path.join(".output", f"detr_{epochs}ep_{batch_size}bs_{lr}lr")
-    image_processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
+def train(
+    model_name: str,
+    image_dir: str,
+    train_coco_fp: str,
+    val_coco_fp: str,
+    epochs: int = 50,
+    batch_size: int = 4,
+    lr: float = 1e-5,
+):
+    model_id = model_name.split("/")[-1]
+
+    output_dir = os.path.join(
+        ".output",
+        f"{model_id}_{epochs}ep_{batch_size}bs_{lr}lr",
+    )
+
+    print(f"Loading {model_name}")
+
+    image_processor = AutoImageProcessor.from_pretrained(model_name)
 
     train_ds = BCCDDataset(image_dir, train_coco_fp, image_processor)
     val_ds = BCCDDataset(image_dir, val_coco_fp, image_processor)
 
-    model = DetrForObjectDetection.from_pretrained(
-        "facebook/detr-resnet-50",
+    model = AutoModelForObjectDetection.from_pretrained(
+        model_name,
         num_labels=len(CLASSES),
         id2label=ID2LABEL,
         label2id=LABEL2ID,
@@ -83,13 +100,26 @@ def collate_fn(batch, image_processor):
     }
 
 
-if __name__ == "__main__":
-    import os
-
-    from constants import COCO_DIR, IMAGE_DIR
-
-    main(
-        IMAGE_DIR,
-        os.path.join(COCO_DIR, "train.json"),
-        os.path.join(COCO_DIR, "val.json"),
+def main():
+    parser = argparse.ArgumentParser(
+        description="Evaluate DETR model and visualize results."
     )
+    parser.add_argument(
+        "--model-name",
+        type=str,
+        required=True,
+        help="Object detection model name (e.g., facebook/detr-resnet-50)",
+    )
+
+    args = parser.parse_args()
+
+    train(
+        model_name=args.model_name,
+        image_dir=IMAGE_DIR,
+        train_coco_fp=os.path.join(COCO_DIR, "train.json"),
+        val_coco_fp=os.path.join(COCO_DIR, "val.json"),
+    )
+
+
+if __name__ == "__main__":
+    main()
