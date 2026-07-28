@@ -38,14 +38,14 @@ def train(
     train_coco_fp: str,
     val_coco_fp: str,
     epochs: int = 50,
-    batch_size: int = 4,
+    batch_size: int = 8,
     lr: float = 1e-5,
 ):
     model_id = model_name.split("/")[-1]
 
     output_dir = os.path.join(
         ".output",
-        f"{model_id}_{epochs}ep",
+        f"{model_id}_{epochs}ep_{batch_size}bs_{lr}lr",
     )
 
     print(f"Loading {model_name}")
@@ -77,7 +77,7 @@ def train(
         logging_strategy="epoch",
         dataloader_num_workers=4,
         remove_unused_columns=False,
-        fp16=True,
+        bf16=True,
         report_to=["tensorboard"],
     )
 
@@ -126,6 +126,12 @@ def main():
         default=50,
         help="Number of training epochs (default: 50)",
     )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=8,
+        help="Batch size for training and evaluation (default: 8)",
+    )
 
     args = parser.parse_args()
 
@@ -135,6 +141,7 @@ def main():
         train_coco_fp=os.path.join(COCO_DIR, "train.json"),
         val_coco_fp=os.path.join(COCO_DIR, "val.json"),
         epochs=args.epochs,
+        batch_size=args.batch_size,
     )
 
 
