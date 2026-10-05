@@ -187,7 +187,7 @@ Trained on the **train** set; metrics reported on the **validation** set.
 
 ### Validation Sample Images (Ground Truth vs Predictions)
 
-Each image shows the **ground truth** (left) and **model predictions** (right) side by side by fine-tuned DETR model with 100 epochs. 
+Each image shows the **ground truth** (left) and **model predictions** (right) side by side by fine-tuned DETR model with 100 epochs.
 Bounding box colors: **Green** = RBC, **Red** = WBC, **Blue** = Platelets.
 
 | Image | Ground Truth → Predictions |
