@@ -14,7 +14,7 @@ def convert(split):
     txt_file = os.path.join(IMAGESETS_DIR, split + ".txt")
 
     with open(txt_file) as f:
-        image_names = [x.strip() for x in f.readlines()]
+        image_names = [x.strip() for x in f]
 
     for name in tqdm(image_names):
         xml_path = os.path.join(ANNOTATION_DIR, name + ".xml")
